@@ -1,0 +1,127 @@
+/* 🌟 General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+/* 🌟 Container */
+.container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    background: white;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+/* 🌟 Headings */
+h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* 🌟 Input Fields */
+input, textarea, select {
+    width: 90%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 🌟 Buttons */
+button {
+    width: 95%;
+    padding: 12px;
+    background: blue;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+    border-radius: 5px;
+    font-size: 16px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+button:hover {
+    background: darkblue;
+}
+
+/* 🌟 Delete Button */
+button.delete {
+    background-color: #dc3545;
+}
+
+button.delete:hover {
+    background-color: #c82333;
+}
+
+/* 🌟 Error Message */
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+/* 🌟 Task List */
+.plan {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    text-align: left;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.plan h3 {
+    color: #333;
+    margin: 0 0 5px 0;
+}
+
+.plan p {
+    font-size: 14px;
+    color: #666;
+    margin: 5px 0;
+}
+
+/* 🌟 Links */
+p {
+    color: #555;
+}
+
+a {
+    color: blue;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* 🌟 Logout Link */
+.logout {
+    display: block;
+    margin-top: 20px;
+    text-align: center;
+    color: #dc3545;
+    text-decoration: none;
+}
+
+.logout:hover {
+    text-decoration: underline;
+}
