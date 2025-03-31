@@ -1,109 +1,159 @@
-<?php 
+<?php
 session_start();
 require 'db.php';
 
+// Check if user is logged in
 if (!isset($_SESSION['user'])) {
     header('Location: login.php');
     exit;
 }
 
 $user_email = $_SESSION['user'];
-$error_message = "";
 
-// Default filter values
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$from_date = isset($_GET['from_date']) ? $_GET['from_date'] : '';
-$to_date = isset($_GET['to_date']) ? $_GET['to_date'] : '';
-$status = isset($_GET['status']) ? $_GET['status'] : '';
-$priority = isset($_GET['priority']) ? $_GET['priority'] : '';
+// Status and priority options
+$status_options = ['PLANNED', 'DONE', 'NOT DONE'];
+$priority_options = ['დაბალი', 'საშუალო', 'მაღალი', 'აუცილებელი'];
 
-// Query to get user plans
-$sql = "SELECT * FROM plans WHERE user_email = ?";
+// Sorting options
+$sort_options = [
+    'date ASC' => 'თარიღი ზრდადობით',
+    'date DESC' => 'თარიღი კლებადობით',
+    'priority ASC' => 'პრიორიტეტი ზრდადობით',
+    'priority DESC' => 'პრიორიტეტი კლებადობით',
+    'status ASC' => 'სტატუსი ზრდადობით',
+    'status DESC' => 'სტატუსი კლებადობით'
+];
 
-// Applying filters dynamically
+// Filter parameters
+$search = $_GET['search'] ?? '';
+$status = $_GET['status'] ?? '';
+$priority = $_GET['priority'] ?? '';
+$date_from = $_GET['date_from'] ?? '';
+$date_to = $_GET['date_to'] ?? '';
+$sort = $_GET['sort'] ?? 'date ASC';
+
+// SQL query to fetch tasks (including collaboration tasks)
+$sql = "SELECT p.*, c.user_email AS collaborator_email, c.status AS collaborator_status 
+        FROM plans p 
+        LEFT JOIN collaborators c ON p.id = c.task_id 
+        WHERE p.user_email = ? OR c.user_email = ?";
 $filters = [];
-$params = [$user_email];
+$params = [$user_email, $user_email];
 
+// Search filter
 if (!empty($search)) {
-    $sql .= " AND (title LIKE ? OR description LIKE ?)";
+    $sql .= " AND (p.title LIKE ? OR p.description LIKE ?)";
     $filters[] = "%$search%";
     $filters[] = "%$search%";
 }
 
-if (!empty($from_date)) {
-    $sql .= " AND date >= ?";
-    $filters[] = $from_date;
+// Date range filter
+if (!empty($date_from)) {
+    $sql .= " AND p.date >= ?";
+    $filters[] = $date_from;
+}
+if (!empty($date_to)) {
+    $sql .= " AND p.date <= ?";
+    $filters[] = $date_to;
 }
 
-if (!empty($to_date)) {
-    $sql .= " AND date <= ?";
-    $filters[] = $to_date;
-}
-
+// Status and priority filters
 if (!empty($status)) {
-    $sql .= " AND status = ?";
+    $sql .= " AND p.status = ?";
     $filters[] = $status;
 }
-
 if (!empty($priority)) {
-    $sql .= " AND priority = ?";
+    $sql .= " AND p.priority = ?";
     $filters[] = $priority;
 }
 
+// Sorting
+$sql .= " ORDER BY " . $sort;
+
+// Execute query
 $stmt = $conn->prepare($sql);
-$stmt->bind_param(str_repeat("s", count($filters) + 1), ...array_merge([$user_email], $filters));
+$stmt->bind_param(str_repeat("s", count($filters) + 2), ...array_merge([$user_email, $user_email], $filters));
 $stmt->execute();
 $result = $stmt->get_result();
-
 ?>
 
 <!DOCTYPE html>
 <html lang="ka">
 <head>
     <meta charset="UTF-8">
-    <title>ჩემი გეგმები</title>
+    <title>გეგმების მართვა</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h2>📋 ჩემი გეგმები</h2>
 
-        <!-- Filter Form -->
-        <form method="GET" action="dashboard.php">
-            <input type="text" name="search" placeholder="🔍 ძებნა..." value="<?= htmlspecialchars($search) ?>">
-            <input type="date" name="from_date" value="<?= htmlspecialchars($from_date) ?>">
-            <input type="date" name="to_date" value="<?= htmlspecialchars($to_date) ?>">
-            <select name="status">
-                <option value=""> სტატუსი</option>
-                <option value="PLANNED" <?= $status == 'PLANNED' ? 'selected' : '' ?>>დაგეგმილი</option>
-                <option value="DONE" <?= $status == 'DONE' ? 'selected' : '' ?>>შესრულებული</option>
-                <option value="NOT DONE" <?= $status == 'NOT DONE' ? 'selected' : '' ?>>შეუსრულებელი</option>
-            </select>
-            <select name="priority">
-                <option value=""> პრიორიტეტი</option>
-                <option value="low" <?= $priority == 'low' ? 'selected' : '' ?>>დაბალი</option>
-                <option value="medium" <?= $priority == 'medium' ? 'selected' : '' ?>>საშუალო</option>
-                <option value="high" <?= $priority == 'high' ? 'selected' : '' ?>>მაღალი</option>
-                <option value="essential" <?= $priority == 'essential' ? 'selected' : '' ?>>აუცილებელი</option>
-            </select>
-            <button type="submit">🔎 გაფილტვრა</button>
-        </form>
+<h1>გეგმების სია</h1>
 
-        <!-- Display Tasks -->
-        <?php while ($plan = $result->fetch_assoc()): ?>
-            <div class="plan">
-                <h3><?= htmlspecialchars($plan['title']) ?></h3>
-                <p>📅 თარიღი: <?= htmlspecialchars($plan['date']) ?></p>
-                <p>📌 სტატუსი: <?= htmlspecialchars($plan['status']) ?></p>
-                <p>⚡ პრიორიტეტი: <?= htmlspecialchars($plan['priority']) ?></p>
-                <p>✍ აღწერა: <?= htmlspecialchars($plan['description']) ?></p>
-                <a href="edit_task.php?id=<?= $plan['id'] ?>">✏️ შეცვლა</a> | 
-                <a href="delete_task.php?id=<?= $plan['id'] ?>" onclick="return confirm('ნამდვილად გსურთ წაშლა?')">❌ წაშლა</a>
-            </div>
+<a href="add_task.php" class="btn">➕ ახალი გეგმა</a>
+<a href="collaborator_tasks.php" class="btn">🤝 ჩემი კოლაბორაციები</a>
+<a href="logout.php" class="logout">🚪 გასვლა</a>
+
+<!-- Filters Form -->
+<form method="get" class="filter-form">
+    <input type="text" name="search" placeholder="ძებნა სათაური ან აღწერა" value="<?= htmlspecialchars($search) ?>">
+    <select name="status">
+        <option value="">ყველა სტატუსი</option>
+        <?php foreach ($status_options as $s): ?>
+            <option value="<?= $s ?>" <?= ($status == $s) ? 'selected' : '' ?>><?= $s ?></option>
+        <?php endforeach; ?>
+    </select>
+    <select name="priority">
+        <option value="">ყველა პრიორიტეტი</option>
+        <?php foreach ($priority_options as $p): ?>
+            <option value="<?= $p ?>" <?= ($priority == $p) ? 'selected' : '' ?>><?= $p ?></option>
+        <?php endforeach; ?>
+    </select>
+    <input type="date" name="date_from" value="<?= htmlspecialchars($date_from) ?>">
+    <input type="date" name="date_to" value="<?= htmlspecialchars($date_to) ?>">
+    <select name="sort">
+        <?php foreach ($sort_options as $option_value => $option_label): ?>
+            <option value="<?= $option_value ?>" <?= ($sort == $option_value) ? 'selected' : '' ?>><?= $option_label ?></option>
+        <?php endforeach; ?>
+    </select>
+    <button type="submit">ფილტრი</button>
+</form>
+
+<!-- Tasks Table -->
+<table>
+    <thead>
+        <tr>
+            <th>თარიღი</th>
+            <th>სათაური</th>
+            <th>აღწერა</th>
+            <th>სტატუსი</th>
+            <th>პრიორიტეტი</th>
+            <th>კოლაბორატორი</th>
+            <th>ქმედება</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php while ($row = $result->fetch_assoc()): ?>
+            <tr>
+                <td><?= htmlspecialchars($row['date']) ?></td>
+                <td><?= htmlspecialchars($row['title']) ?></td>
+                <td><?= htmlspecialchars($row['description']) ?></td>
+                <td><?= htmlspecialchars($row['status']) ?></td>
+                <td><?= htmlspecialchars($row['priority']) ?></td>
+                <td>
+                    <?php if (!empty($row['collaborator_email'])): ?>
+                        <?= htmlspecialchars($row['collaborator_email']) ?> (<?= htmlspecialchars($row['collaborator_status']) ?>)
+                    <?php else: ?>
+                        <i>No collaborators</i>
+                    <?php endif; ?>
+                </td>
+                <td>
+                    <a href="edit_task.php?id=<?= $row['id'] ?>">✏️ შეცვლა</a>
+                    <a href="delete_task.php?id=<?= $row['id'] ?>" onclick="return confirm('ნამდვილად წაშალო?')">🗑️ წაშლა </a>
+                    <a href="add_collaborator.php?task_id=<?= $row['id'] ?>">➕ კოლაბორატორი</a>
+                </td>
+            </tr>
         <?php endwhile; ?>
+    </tbody>
+</table>
 
-        <a href="add_task.php">➕ ახალი გეგმის დამატება</a>
-        <a href="logout.php" class="logout">🚪 გასვლა</a>
-    </div>
 </body>
 </html>
