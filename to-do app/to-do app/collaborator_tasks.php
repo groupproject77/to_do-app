@@ -49,7 +49,6 @@ $result = $stmt->get_result();
                     <td><?= htmlspecialchars($row['description']) ?></td>
                     <td><?= htmlspecialchars($row['collaborator_status']) ?></td>
                     <td><?= htmlspecialchars($row['sender_email']) ?></td>
-                    
                     <td>
                         <?php if ($row['collaborator_status'] == 'PENDING'): ?>
                             <a href="accept_collaborator.php?id=<?= $row['collaborator_id'] ?>">✅ დადასტურება</a>
